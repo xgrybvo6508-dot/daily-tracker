@@ -1,0 +1,969 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Daily Tracker</title>
+<meta name="description" content="Minimal offline tracker for food, sleep, energy and habits.">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#F7F6F3">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141517">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Daily">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<style>
+:root{
+  --bg:#F7F6F3;--surface:#FFFFFF;--surface-2:#EFEDE8;--text:#1F2023;--text-2:#6B6E73;--line:#E3E1DB;
+  --accent:#4F7C82;--accent-soft:#DCE8E9;--on-accent:#F7F6F3;--focus:#4F7C82;
+  --toast-bg:#1F2023;--toast-text:#ECEBE8;--toast-accent:#9CC5C9;--scrim:rgba(20,21,23,.32);
+  --s1:#B98A7E;--s2:#C6A77E;--s3:#A9AC8A;--s4:#84A79A;--s5:#5F9A93;--on-scale:#1F2023;
+  --r-card:16px;--r-chip:12px;--tab-h:64px;--hdr-h:56px;
+  --safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px);
+  --pad:16px;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#141517;--surface:#1D1F22;--surface-2:#26292D;--text:#ECEBE8;--text-2:#9A9DA3;--line:#2F3236;
+    --accent:#7FB0B5;--accent-soft:#24383B;--on-accent:#141517;--focus:#7FB0B5;
+    --toast-bg:#ECEBE8;--toast-text:#1F2023;--toast-accent:#3F6A70;--scrim:rgba(0,0,0,.5);
+  }
+}
+@media (min-width:600px){:root{--pad:24px}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text)}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Inter",sans-serif;
+  font-size:1.0625rem;line-height:1.4;font-weight:400;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%;
+  -webkit-tap-highlight-color:transparent;overscroll-behavior:none;overflow:hidden;
+}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+button:disabled{cursor:default;opacity:.45}
+:focus{outline:none}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+[hidden]{display:none!important}
+h1,h2,p{margin:0}
+ul{list-style:none;margin:0;padding:0}
+svg{display:block;flex:none}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Shell */
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh}
+header{flex:none;padding:var(--safe-t) calc(var(--safe-r) + 8px) 0 calc(var(--safe-l) + 8px);background:var(--bg)}
+.hdr{height:var(--hdr-h);max-width:600px;margin:0 auto;display:flex;align-items:center;gap:4px}
+.hdr h1{font-size:1.5rem;font-weight:600;line-height:1.2;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums;padding:0 4px}
+.spacer{flex:1}
+main{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+  padding:8px calc(var(--pad) + var(--safe-r)) 32px calc(var(--pad) + var(--safe-l))}
+.wrap{max-width:560px;margin:0 auto}
+nav.tabs{flex:none;background:var(--surface);border-top:1px solid var(--line);
+  padding:0 var(--safe-r) var(--safe-b) var(--safe-l)}
+.tabs-in{max-width:560px;height:var(--tab-h);margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tab{background:none;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  color:var(--text-2);font-size:.75rem;font-weight:600;letter-spacing:.02em;min-height:48px}
+.tab[aria-current="page"]{color:var(--accent)}
+
+/* Generic controls */
+.icon-btn{width:48px;height:48px;border:0;border-radius:var(--r-chip);background:none;display:inline-flex;align-items:center;justify-content:center;color:var(--text-2);flex:none}
+.icon-btn:active{background:var(--surface-2)}
+.hdr .icon-btn{color:var(--text)}
+.pill{min-height:36px;padding:0 14px;border-radius:999px;border:0;background:var(--accent-soft);color:var(--accent);font-size:.875rem;font-weight:600;position:relative}
+.pill::after{content:"";position:absolute;inset:-6px}
+.link{background:none;border:0;color:var(--accent);font-weight:600;font-size:.9375rem;min-height:48px;min-width:48px;padding:0 8px;border-radius:var(--r-chip)}
+.link.quiet{color:var(--text-2)}
+.btn{min-height:48px;padding:0 20px;border-radius:var(--r-chip);border:1px solid var(--line);background:var(--surface-2);font-weight:600}
+.btn.primary{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.btn.block{width:100%;display:flex;align-items:center;justify-content:center;gap:8px}
+.label{font-size:.8125rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text-2);margin:0 4px 8px}
+.sec{margin-top:24px}
+.sec:first-child{margin-top:8px}
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 4px}
+.sec-head .label{margin-bottom:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);padding:16px}
+.card.list{padding:0;overflow:hidden}
+.meta{font-size:.875rem;color:var(--text-2)}
+.muted{color:var(--text-2)}
+.prompt{color:var(--text-2);text-align:center;margin:0 0 12px}
+.empty{text-align:center;color:var(--text-2);display:flex;flex-direction:column;align-items:center;gap:12px;padding:24px 16px}
+.press{transition:transform 80ms ease-out,background-color 150ms ease-out,color 150ms ease-out,border-color 150ms ease-out}
+.press:active{transform:scale(.96)}
+
+/* Rows */
+.row{display:flex;align-items:center;gap:12px;min-height:56px;padding:0 16px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);border-radius:0}
+.card.list > :first-child, .card.list > li:first-child > .row{border-top:0}
+.row.btnrow:active{background:var(--surface-2)}
+.check{width:28px;height:28px;border-radius:50%;border:2px solid var(--text-2);flex:none;display:flex;align-items:center;justify-content:center;transition:background-color 150ms ease-out,border-color 150ms ease-out}
+.check svg{opacity:0;color:var(--on-accent)}
+.done .check,[aria-pressed="true"] > .check{background:var(--accent);border-color:var(--accent)}
+.done .check svg,[aria-pressed="true"] > .check svg{opacity:1}
+.grow{flex:1;min-width:0}
+.check-space{width:28px;flex:none}
+.ellip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* Chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:48px;padding:0 16px;border-radius:var(--r-chip);border:1px solid transparent;background:var(--surface-2);font-weight:400;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--text);font-weight:600}
+.chip.ghost{background:none;border:1px dashed var(--line);color:var(--accent);font-weight:600}
+.scale{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.sq{height:56px;border-radius:var(--r-chip);border:0;background:var(--surface-2);font-size:1.25rem;font-weight:600;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.sq.big{height:64px;font-size:1.5rem}
+.sq .dot{width:8px;height:8px;border-radius:50%}
+.sq[aria-pressed="true"]{color:var(--on-scale)}
+.scale-legend{display:flex;justify-content:space-between;margin-top:4px;padding:0 4px}
+
+/* Food */
+.slot{padding:0 4px 0 16px;gap:4px}
+.slot-main{flex:1;min-width:0;display:flex;align-items:center;gap:12px;min-height:56px;background:none;border:0;padding:0;text-align:left}
+.slot-label{width:84px;flex:none;color:var(--text-2);font-size:.9375rem}
+.slot.done{background:var(--accent-soft)}
+.wk{gap:12px}
+.wk .wd{width:40px;flex:none;font-weight:600}
+.wk.today{background:var(--accent-soft)}
+.foot{display:flex;justify-content:space-between;flex-wrap:wrap;margin-top:16px}
+.add-form{display:flex;gap:8px}
+.add-form input{flex:1;min-width:0;min-height:48px;border-radius:var(--r-chip);border:1px solid var(--line);background:var(--surface-2);padding:0 14px;font-size:1rem}
+.add-form input:focus-visible{outline:2px solid var(--focus);outline-offset:0}
+
+/* Sleep */
+.times{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.time-btn{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:96px;border-radius:var(--r-card);background:var(--surface-2);cursor:pointer;padding:8px}
+.time-btn:focus-within{outline:2px solid var(--focus);outline-offset:2px}
+.time-btn input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;border:0;padding:0;font-size:16px;cursor:pointer;-webkit-appearance:none;appearance:none;background:transparent}
+.time-btn input::-webkit-calendar-picker-indicator{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.big{font-size:1.75rem;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.big.empty-val{color:var(--text-2)}
+.dur{text-align:center;color:var(--text-2);margin:12px 0 4px;min-height:1.4em;font-variant-numeric:tabular-nums}
+.center{display:flex;justify-content:center;margin-bottom:16px}
+.sub{margin:20px 4px 8px}
+.night{gap:8px;padding:0 4px 0 16px;font-variant-numeric:tabular-nums}
+.night .nd{width:36px;flex:none;font-weight:600}
+.night .nt{width:112px;flex:none;font-size:.9375rem}
+.bar{flex:1;height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;min-width:24px}
+.bar i{display:block;height:100%;border-radius:4px}
+.night .ndur{width:60px;flex:none;text-align:right;font-size:.875rem;color:var(--text-2)}
+.night .spacer48{width:48px;flex:none}
+
+/* Energy */
+.entry{gap:16px;font-variant-numeric:tabular-nums}
+.entry .time{width:52px;flex:none;font-weight:600}
+.dots{display:flex;gap:6px;flex:1}
+.dots span{width:12px;height:12px;border-radius:50%;background:var(--surface-2)}
+.entry .val{width:24px;text-align:right;color:var(--text-2)}
+.spark{position:relative;margin:16px 10px 0;height:56px;color:var(--accent)}
+.spark svg{position:absolute;inset:0;overflow:visible}
+.spark i{position:absolute;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:currentColor}
+.avg{display:flex;justify-content:space-between;align-items:baseline;margin-top:16px;padding:0 4px}
+
+/* Habits */
+.progress{display:flex;align-items:center;gap:12px;margin:4px 4px 12px}
+.pbar{flex:1;height:4px;border-radius:2px;background:var(--surface-2);overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--accent);border-radius:2px;transition:width 150ms ease-out}
+.habit.done{background:var(--accent-soft)}
+.streak{font-size:.875rem;color:var(--text-2);font-variant-numeric:tabular-nums}
+.streak.hot{color:var(--accent);font-weight:600}
+.habit.edit{padding:0 4px 0 16px;gap:0}
+.allgood{text-align:center;color:var(--text-2);margin-top:12px}
+
+/* Sheet */
+.scrim{position:fixed;inset:0;background:var(--scrim);opacity:0;pointer-events:none;transition:opacity 200ms ease-out;z-index:40}
+.scrim.open{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:600px;max-height:85vh;max-height:85dvh;overflow-y:auto;overscroll-behavior:contain;
+  background:var(--surface);border-radius:24px 24px 0 0;border:1px solid var(--line);border-bottom:0;
+  padding:0 calc(16px + var(--safe-r)) calc(24px + var(--safe-b)) calc(16px + var(--safe-l));
+  transform:translateY(105%);transition:transform 220ms cubic-bezier(.2,.8,.2,1);z-index:50;visibility:hidden}
+.sheet.open{transform:none;visibility:visible}
+.sheet.closing{visibility:visible}
+.handle{display:flex;justify-content:center;padding:10px 0 6px;position:sticky;top:0;background:var(--surface);z-index:1}
+.handle span{width:36px;height:4px;border-radius:2px;background:var(--line)}
+.sheet-title{font-size:1.25rem;font-weight:600;margin:4px 0 16px}
+.sheet .label{margin-left:0}
+.sheet-sec{margin-bottom:20px}
+.sheet .card.list{margin:0}
+.stack{display:flex;flex-direction:column;gap:8px}
+.note{font-size:.875rem;color:var(--text-2);margin-top:16px;text-align:center}
+
+/* Toast */
+.toast{position:fixed;left:50%;bottom:calc(var(--tab-h) + var(--safe-b) + 12px);transform:translate(-50%,16px);opacity:0;pointer-events:none;
+  width:calc(100% - 32px);max-width:528px;background:var(--toast-bg);color:var(--toast-text);border-radius:var(--r-chip);
+  display:flex;align-items:center;gap:8px;padding:4px 4px 4px 16px;min-height:52px;font-size:.875rem;z-index:60;
+  transition:opacity 150ms ease-out,transform 150ms ease-out}
+.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+body.sheet-open .toast{bottom:auto;top:calc(var(--safe-t) + 8px);transform:translate(-50%,-16px)}
+body.sheet-open .toast.show{transform:translate(-50%,0)}
+.toast .msg{flex:1;min-width:0}
+.toast button{background:none;border:0;color:var(--toast-accent);font-weight:600;min-height:44px;min-width:64px;padding:0 12px;border-radius:8px}
+
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition-duration:0ms!important;animation-duration:0ms!important}
+  .press:active{transform:none}
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header>
+    <div class="hdr">
+      <button class="icon-btn" id="prevDay" aria-label="Previous day"></button>
+      <h1 id="title" aria-live="polite"></h1>
+      <button class="icon-btn" id="nextDay" aria-label="Next day"></button>
+      <button class="pill" id="todayBtn" hidden>Today</button>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="gear" aria-label="Settings"></button>
+    </div>
+  </header>
+  <main id="main"><div class="wrap" id="view"></div></main>
+  <nav class="tabs" aria-label="Sections"><div class="tabs-in" id="tabs"></div></nav>
+</div>
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle" inert></div>
+<div class="toast" id="toast" role="status" aria-live="polite"><span class="msg" id="toastMsg"></span><button id="toastUndo" type="button">Undo</button></div>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+<script>
+(function () {
+'use strict';
+
+/* ---------- constants & helpers ---------- */
+var KEY = 'dailyTracker.v1';
+var SLOTS = [['breakfast', 'Breakfast'], ['lunch', 'Lunch'], ['dinner', 'Dinner']];
+var DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+var DSHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+var TABS = [['food', 'Food'], ['sleep', 'Sleep'], ['energy', 'Energy'], ['habits', 'Habits']];
+var SCALE = ['', 'var(--s1)', 'var(--s2)', 'var(--s3)', 'var(--s4)', 'var(--s5)'];
+
+var I = {
+  food: '<path d="M3 11h18a9 9 0 0 1-18 0z"/><path d="M8.5 7.5c0-1.5 1-1.5 1-3M12 7.5c0-1.5 1-1.5 1-3M15.5 7.5c0-1.5 1-1.5 1-3"/>',
+  sleep: '<path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/>',
+  energy: '<path d="M13 3L5 14h6l-1 7 8-11h-6l1-7z"/>',
+  habits: '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.5 2.5L16 9.5"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  left: '<path d="M15 6l-6 6 6 6"/>',
+  right: '<path d="M9 6l6 6-6 6"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16v4z"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  up: '<path d="M6 15l6-6 6 6"/>',
+  down: '<path d="M6 9l6 6 6-6"/>',
+  tick: '<path d="M6 12.5l4 4L18 8.5"/>',
+  dl: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+  ul: '<path d="M12 20V9M7 14l5-5 5 5M5 4h14"/>'
+};
+function icon(name, size, sw) {
+  size = size || 24;
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (sw || 1.75) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I[name] + '</svg>';
+}
+function pad(n) { return (n < 10 ? '0' : '') + n; }
+function dkey(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+function parseKey(k) { var p = k.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function addDays(k, n) { var d = parseKey(k); d.setDate(d.getDate() + n); return dkey(d); }
+function todayKey() { return dkey(new Date()); }
+function wdIdx(k) { return (parseKey(k).getDay() + 6) % 7; }
+function fmtDay(k) { var d = parseKey(k); return DSHORT[wdIdx(k)] + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate(); }
+function hm(ts) { var d = new Date(ts); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+function toMin(t) { if (!t) return null; var p = t.split(':'); return (+p[0]) * 60 + (+p[1]); }
+function durMin(bed, wake) {
+  var b = toMin(bed), w = toMin(wake);
+  if (b == null || w == null) return null;
+  var d = w - b; if (d <= 0) d += 1440; // crosses midnight
+  return d;
+}
+function fmtDur(m) { var h = Math.floor(m / 60), r = m % 60; return h + ' h' + (r ? ' ' + r + ' min' : ''); }
+function fmtDurShort(m) { var h = Math.floor(m / 60), r = m % 60; return h + 'h' + (r ? ' ' + r + 'm' : ''); }
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function isObj(v) { return !!v && typeof v === 'object' && !Array.isArray(v); }
+function isStr(v) { return typeof v === 'string'; }
+function okDate(k) { return /^\d{4}-\d{2}-\d{2}$/.test(k); }
+function okTime(t) { return isStr(t) && /^([01]\d|2[0-3]):[0-5]\d$/.test(t); }
+function buzz() { try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) {} }
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
+/* ---------- state ---------- */
+function defaultState() {
+  var wp = []; for (var i = 0; i < 7; i++) wp.push({ breakfast: null, lunch: null, dinner: null });
+  return {
+    version: 1,
+    dishes: [],                 // [{id, name}]
+    weekPlan: wp,               // [Mon..Sun] {breakfast, lunch, dinner: dishId|null}
+    eaten: {},                  // {date: {breakfast: true, ...}}
+    sleep: {},                  // {wakeDate: {bed:'23:10', wake:'07:00', q:1..5}}
+    energy: {},                 // {date: [{t: ms, v: 1..5}]}
+    habits: [
+      { id: 'brush', name: 'Brush teeth' }, { id: 'water', name: 'Drink water' },
+      { id: 'move', name: 'Move 10 min' }, { id: 'read', name: 'Read' }
+    ],
+    habitLog: {},               // {date: [habitId]}
+    ui: { tab: 'food' }
+  };
+}
+
+function normalize(o) {
+  if (!isObj(o)) throw new Error('not a Daily Tracker backup');
+  if (isObj(o.data) && !('dishes' in o) && !('habits' in o)) o = o.data;
+  if (o.version !== undefined && o.version !== 1) throw new Error('unsupported version ' + o.version);
+  var known = ['dishes', 'weekPlan', 'eaten', 'sleep', 'energy', 'habits', 'habitLog'];
+  if (!known.some(function (k) { return k in o; })) throw new Error("this file doesn't look like a Daily Tracker export");
+  var s = defaultState();
+  if ('dishes' in o) {
+    if (!Array.isArray(o.dishes)) throw new Error('"dishes" must be a list');
+    s.dishes = o.dishes.filter(function (d) { return isObj(d) && isStr(d.id) && isStr(d.name) && d.name.trim(); })
+      .map(function (d) { return { id: d.id, name: d.name.trim().slice(0, 80) }; });
+  }
+  var ids = {}; s.dishes.forEach(function (d) { ids[d.id] = 1; });
+  if (Array.isArray(o.weekPlan)) o.weekPlan.slice(0, 7).forEach(function (p, i) {
+    if (isObj(p)) SLOTS.forEach(function (sl) { s.weekPlan[i][sl[0]] = ids[p[sl[0]]] ? p[sl[0]] : null; });
+  });
+  if (isObj(o.eaten)) Object.keys(o.eaten).forEach(function (k) {
+    var v = o.eaten[k]; if (!okDate(k) || !isObj(v)) return;
+    var e = {}, n = 0; SLOTS.forEach(function (sl) { if (v[sl[0]] === true) { e[sl[0]] = true; n++; } });
+    if (n) s.eaten[k] = e;
+  });
+  if (isObj(o.sleep)) Object.keys(o.sleep).forEach(function (k) {
+    var v = o.sleep[k]; if (!okDate(k) || !isObj(v)) return;
+    var e = {}; if (okTime(v.bed)) e.bed = v.bed; if (okTime(v.wake)) e.wake = v.wake;
+    if (v.q === 1 || v.q === 2 || v.q === 3 || v.q === 4 || v.q === 5) e.q = v.q;
+    if (Object.keys(e).length) s.sleep[k] = e;
+  });
+  if (isObj(o.energy)) Object.keys(o.energy).forEach(function (k) {
+    var v = o.energy[k]; if (!okDate(k) || !Array.isArray(v)) return;
+    var a = v.filter(function (x) { return isObj(x) && typeof x.t === 'number' && isFinite(x.t) && [1, 2, 3, 4, 5].indexOf(x.v) >= 0; })
+      .map(function (x) { return { t: x.t, v: x.v }; }).sort(function (a, b) { return a.t - b.t; });
+    if (a.length) s.energy[k] = a;
+  });
+  if ('habits' in o) {
+    if (!Array.isArray(o.habits)) throw new Error('"habits" must be a list');
+    s.habits = o.habits.filter(function (h) { return isObj(h) && isStr(h.id) && isStr(h.name) && h.name.trim(); })
+      .map(function (h) { return { id: h.id, name: h.name.trim().slice(0, 80) }; });
+  }
+  if (isObj(o.habitLog)) Object.keys(o.habitLog).forEach(function (k) {
+    var v = o.habitLog[k]; if (!okDate(k) || !Array.isArray(v)) return;
+    var a = v.filter(isStr).filter(function (x, i, arr) { return arr.indexOf(x) === i; });
+    if (a.length) s.habitLog[k] = a;
+  });
+  if (isObj(o.ui) && TABS.some(function (t) { return t[0] === o.ui.tab; })) s.ui.tab = o.ui.tab;
+  return s;
+}
+
+function load() {
+  var raw = null;
+  try { raw = localStorage.getItem(KEY); } catch (e) {}
+  if (!raw) return defaultState();
+  try { return normalize(JSON.parse(raw)); }
+  catch (e) {
+    try { localStorage.setItem(KEY + '.corrupt-backup', raw); } catch (e2) {}
+    return defaultState();
+  }
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(state)); return true; }
+  catch (e) { showToast("Couldn't save: storage is full or blocked", null); return false; }
+}
+
+var state = load();
+var ui = { sel: todayKey(), lastToday: todayKey(), sheet: null, editHabits: false, newDish: false, resetArmed: false, opener: null };
+
+/* ---------- toast + commit (every change autosaves; undo via toast) ---------- */
+var toastTimer = null, toastUndo = null, toastKey = null, toastBefore = null;
+var toastEl = document.getElementById('toast');
+function showToast(msg, undoFn, coalesceKey, before) {
+  document.getElementById('toastMsg').textContent = msg;
+  toastUndo = undoFn; toastKey = coalesceKey || null; toastBefore = before || null;
+  document.getElementById('toastUndo').hidden = !undoFn;
+  toastEl.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 4000);
+}
+function hideToast() { toastEl.classList.remove('show'); toastUndo = null; toastKey = null; toastBefore = null; clearTimeout(toastTimer); }
+document.getElementById('toastUndo').addEventListener('click', function () { var f = toastUndo; hideToast(); if (f) f(); });
+
+function commit(fn, msg, opts) {
+  opts = opts || {};
+  var before = (opts.coalesce && toastKey === opts.coalesce && toastBefore) ? toastBefore : JSON.stringify(state);
+  fn(state);
+  var ok = save();
+  if (!opts.noRender) render();
+  if (opts.buzz) buzz();
+  if (msg && ok) showToast(msg, function () {
+    var tab = state.ui.tab;
+    state = normalize(JSON.parse(before)); state.ui.tab = tab;
+    save(); render();
+  }, opts.coalesce, before);
+}
+
+/* ---------- derived ---------- */
+function dish(id) { for (var i = 0; i < state.dishes.length; i++) if (state.dishes[i].id === id) return state.dishes[i]; return null; }
+function habitDone(id, k) { return (state.habitLog[k] || []).indexOf(id) >= 0; }
+function streak(id, ref) {
+  var k = ref, n = 0;
+  if (!habitDone(id, k)) k = addDays(k, -1); // unchecked today doesn't break yesterday's streak
+  while (habitDone(id, k) && n < 5000) { n++; k = addDays(k, -1); }
+  return n;
+}
+function energyAvg(ref) {
+  var sum = 0, n = 0;
+  for (var i = 0; i < 7; i++) (state.energy[addDays(ref, -i)] || []).forEach(function (e) { sum += e.v; n++; });
+  return n ? (sum / n) : null;
+}
+
+/* ---------- views ---------- */
+function slotRow(wd, sl, eaten) {
+  var id = state.weekPlan[wd][sl[0]], d = id && dish(id);
+  if (!d) {
+    return '<button class="row btnrow press" data-action="pick" data-day="' + wd + '" data-slot="' + sl[0] + '">' +
+      '<span class="check-space" aria-hidden="true"></span><span class="slot-label">' + sl[1] + '</span><span class="grow muted">Tap to pick</span></button>';
+  }
+  var done = !!eaten[sl[0]];
+  return '<div class="row slot' + (done ? ' done' : '') + '">' +
+    '<button class="slot-main" data-action="eat" data-slot="' + sl[0] + '" aria-pressed="' + done + '" aria-label="' + sl[1] + ': ' + esc(d.name) + (done ? ', eaten' : ', mark eaten') + '">' +
+    '<span class="check">' + icon('tick', 18, 2.5) + '</span>' +
+    '<span class="slot-label">' + sl[1] + '</span><span class="grow ellip">' + esc(d.name) + '</span></button>' +
+    '<button class="icon-btn" data-action="pick" data-day="' + wd + '" data-slot="' + sl[0] + '" aria-label="Change ' + sl[1].toLowerCase() + '">' + icon('edit', 20) + '</button></div>';
+}
+
+function foodView() {
+  var wd = wdIdx(ui.sel), eaten = state.eaten[ui.sel] || {}, isToday = ui.sel === todayKey(), h = '';
+  if (!state.dishes.length) {
+    h += '<section class="sec"><div class="card empty"><p>Add a few dishes you like — then plan the week in taps.</p>' +
+      '<button class="btn primary press" data-action="manage-dishes" data-new="1">Add dish</button></div></section>';
+  }
+  h += '<section class="sec"><h2 class="label">' + (isToday ? 'Today · ' + DAYS[wd] : esc(fmtDay(ui.sel))) + '</h2><div class="card list" id="foodToday">';
+  SLOTS.forEach(function (sl) { h += slotRow(wd, sl, eaten); });
+  h += '</div></section>';
+  h += '<section class="sec"><h2 class="label">Week plan</h2><div class="card list">';
+  for (var i = 0; i < 7; i++) {
+    var p = state.weekPlan[i];
+    var names = SLOTS.map(function (sl) { var d = p[sl[0]] && dish(p[sl[0]]); return d ? esc(d.name) : '—'; }).join(' · ');
+    var emptyDay = names === '— · — · —'; if (emptyDay) names = 'Nothing planned';
+    h += '<button class="row btnrow wk press' + (i === wd ? ' today' : '') + '" data-action="pick-day" data-day="' + i + '" aria-label="' + DAYS[i] + ': ' + names + '">' +
+      '<span class="wd">' + DSHORT[i] + '</span><span class="grow ellip' + (emptyDay ? ' muted' : '') + '">' + names + '</span></button>';
+  }
+  h += '</div><div class="foot"><button class="link" data-action="manage-dishes">Manage dishes (' + state.dishes.length + ')</button>' +
+    '<button class="link quiet" data-action="clear-week">Clear week</button></div></section>';
+  return h;
+}
+
+function timeBtn(field, label, val, ghost) {
+  return '<label class="time-btn"><span class="meta">' + label + '</span>' +
+    '<span class="big' + (val ? '' : ' empty-val') + '" data-show="' + field + '">' + (val || '--:--') + '</span>' +
+    '<span class="meta" data-ghost="' + field + '">' + (!val && ghost ? 'Yesterday ' + ghost : '&nbsp;') + '</span>' +
+    '<input type="time" data-field="' + field + '" data-key="time-' + field + '" value="' + (val || '') + '" aria-label="' + label + ' time"></label>';
+}
+
+function nightsList() {
+  var h = '';
+  for (var i = 0; i < 7; i++) {
+    var k = addDays(ui.sel, -i), e = state.sleep[k], d = e && durMin(e.bed, e.wake);
+    var times = e ? (e.bed || '--:--') + ' → ' + (e.wake || '--:--') : '—';
+    var w = d != null ? Math.min(100, Math.round(d / 720 * 100)) : 0;
+    var col = e && e.q ? SCALE[e.q] : 'var(--text-2)';
+    h += '<li><div class="row night"><span class="nd">' + DSHORT[wdIdx(k)] + '</span>' +
+      '<span class="nt' + (e ? '' : ' muted') + '">' + times + '</span>' +
+      '<span class="bar" aria-hidden="true"><i style="width:' + w + '%;background:' + col + '"></i></span>' +
+      '<span class="ndur">' + (d != null ? fmtDurShort(d) : (e && e.q ? 'Q' + e.q : '')) + '</span>' +
+      (e ? '<button class="icon-btn" data-action="del-sleep" data-date="' + k + '" aria-label="Delete sleep for ' + fmtDay(k) + '">' + icon('x', 18) + '</button>' : '<span class="spacer48"></span>') +
+      '</div></li>';
+  }
+  return h;
+}
+
+function sleepView() {
+  var e = state.sleep[ui.sel] || {}, y = state.sleep[addDays(ui.sel, -1)], has = Object.keys(e).length > 0;
+  var d = durMin(e.bed, e.wake), isToday = ui.sel === todayKey(), h = '';
+  h += '<section class="sec"><h2 class="label">' + (isToday ? 'Last night' : 'Night before ' + esc(fmtDay(ui.sel))) + '</h2><div class="card">';
+  h += '<p class="prompt" data-prompt' + (has ? ' hidden' : '') + '>How did you sleep?</p>';
+  h += '<div class="times">' + timeBtn('bed', 'Bed', e.bed, y && y.bed) + timeBtn('wake', 'Wake', e.wake, y && y.wake) + '</div>';
+  h += '<p class="dur" id="dur">' + (d != null ? fmtDur(d) : '&nbsp;') + '</p>';
+  h += '<div class="center"><button class="chip press" data-action="same-yesterday"' + (y && (y.bed || y.wake) ? '' : ' disabled') + '>Same as yesterday</button></div>';
+  h += '<h3 class="label sub">Quality</h3><div class="scale" role="group" aria-label="Sleep quality">';
+  for (var q = 1; q <= 5; q++) {
+    var on = e.q === q;
+    h += '<button class="sq press" data-action="quality" data-v="' + q + '" aria-pressed="' + on + '"' + (on ? ' style="background:' + SCALE[q] + '"' : '') + ' aria-label="Quality ' + q + '">' + q + '</button>';
+  }
+  h += '</div><div class="scale-legend meta"><span>Rough</span><span>Great</span></div></div></section>';
+  h += '<section class="sec"><h2 class="label">Last 7 nights</h2><ul class="card list" id="nights">' + nightsList() + '</ul></section>';
+  return h;
+}
+
+function dotsHtml(v) {
+  var s = '';
+  for (var i = 1; i <= 5; i++) s += '<span' + (i <= v ? ' style="background:' + SCALE[v] + '"' : '') + '></span>';
+  return '<span class="dots" aria-hidden="true">' + s + '</span>';
+}
+function sparkline(list) {
+  if (list.length < 2) return '';
+  var H = 56, P = 6, t0 = list[0].t, t1 = list[list.length - 1].t, span = Math.max(1, t1 - t0);
+  var pts = list.map(function (e) { return [(e.t - t0) / span * 100, P + (5 - e.v) / 4 * (H - 2 * P), e.v]; });
+  var path = pts.map(function (p, i) { return (i ? 'L' : 'M') + p[0].toFixed(2) + ' ' + p[1].toFixed(1); }).join(' ');
+  var dots = pts.map(function (p) { return '<i style="left:' + p[0].toFixed(2) + '%;top:' + p[1].toFixed(1) + 'px"></i>'; }).join('');
+  return '<div class="spark" aria-hidden="true"><svg viewBox="0 0 100 ' + H + '" width="100%" height="' + H + '" preserveAspectRatio="none"><path d="' + path + '" fill="none" stroke="currentColor" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/></svg>' + dots + '</div>';
+}
+function energyView() {
+  var list = state.energy[ui.sel] || [], isToday = ui.sel === todayKey(), h = '';
+  h += '<section class="sec"><div class="card">';
+  h += '<p class="prompt">' + (list.length ? (isToday ? 'Log energy now' : 'Log energy for ' + esc(fmtDay(ui.sel))) : "How's your energy right now?") + '</p>';
+  h += '<div class="scale" role="group" aria-label="Log energy">';
+  for (var v = 1; v <= 5; v++) h += '<button class="sq big press" data-action="energy" data-v="' + v + '" aria-label="Log energy ' + v + '">' + v + '<span class="dot" style="background:' + SCALE[v] + '"></span></button>';
+  h += '</div><div class="scale-legend meta"><span>Drained</span><span>Great</span></div></div></section>';
+  h += '<section class="sec"><h2 class="label">' + (isToday ? 'Today' : esc(fmtDay(ui.sel))) + '</h2>';
+  if (list.length) {
+    h += '<div class="card list" id="energyList">';
+    list.slice().reverse().forEach(function (e) {
+      h += '<button class="row btnrow entry press" data-action="edit-energy" data-t="' + e.t + '" aria-label="' + hm(e.t) + ', energy ' + e.v + '. Edit">' +
+        '<span class="time">' + hm(e.t) + '</span>' + dotsHtml(e.v) + '<span class="val">' + e.v + '</span></button>';
+    });
+    h += '</div>' + sparkline(list);
+  } else {
+    h += '<div class="card empty"><p>No entries yet.</p></div>';
+  }
+  var avg = energyAvg(ui.sel);
+  h += '<div class="avg"><span class="meta">7-day avg</span><span class="big" id="avg7">' + (avg != null ? avg.toFixed(1) : '—') + '</span></div></section>';
+  return h;
+}
+
+function habitsView() {
+  var hs = state.habits, k = ui.sel, h = '';
+  var done = hs.filter(function (x) { return habitDone(x.id, k); }).length;
+  var editing = ui.editHabits || !hs.length;
+  h += '<section class="sec"><div class="sec-head"><h2 class="label">Habits</h2>' +
+    (hs.length ? '<button class="link" data-action="edit-habits">' + (ui.editHabits ? 'Done' : 'Edit') + '</button>' : '') + '</div>';
+  if (hs.length && !editing) {
+    h += '<div class="progress"><span class="meta" id="habitProgress">' + done + ' of ' + hs.length + '</span><span class="pbar" aria-hidden="true"><i style="width:' + Math.round(done / hs.length * 100) + '%"></i></span></div>';
+  }
+  if (editing) {
+    if (!hs.length) h += '<p class="prompt">No habits yet. Add one small thing.</p>';
+    h += '<form class="add-form" data-form="habit" style="margin-bottom:12px"><input type="text" name="name" data-key="habit-input" placeholder="New habit" maxlength="80" enterkeyhint="done" autocomplete="off" aria-label="New habit">' +
+      '<button class="btn primary press" type="submit">Add</button></form>';
+  }
+  if (hs.length) {
+    h += '<div class="card list" id="habitList">';
+    hs.forEach(function (x, i) {
+      if (editing) {
+        h += '<div class="row habit edit"><span class="grow ellip">' + esc(x.name) + '</span>' +
+          '<button class="icon-btn" data-action="habit-up" data-id="' + esc(x.id) + '" aria-label="Move ' + esc(x.name) + ' up"' + (i ? '' : ' disabled') + '>' + icon('up', 20) + '</button>' +
+          '<button class="icon-btn" data-action="habit-down" data-id="' + esc(x.id) + '" aria-label="Move ' + esc(x.name) + ' down"' + (i < hs.length - 1 ? '' : ' disabled') + '>' + icon('down', 20) + '</button>' +
+          '<button class="icon-btn" data-action="habit-del" data-id="' + esc(x.id) + '" aria-label="Remove ' + esc(x.name) + '">' + icon('x', 20) + '</button></div>';
+      } else {
+        var on = habitDone(x.id, k), st = streak(x.id, k);
+        h += '<button class="row btnrow habit press' + (on ? ' done' : '') + '" data-action="toggle-habit" data-id="' + esc(x.id) + '" aria-pressed="' + on + '">' +
+          '<span class="check">' + icon('tick', 18, 2.5) + '</span><span class="grow ellip">' + esc(x.name) + '</span>' +
+          '<span class="streak' + (st >= 7 ? ' hot' : '') + '"' + (st ? ' aria-label="' + st + ' day streak"' : '') + '>' + (st ? st + 'd' : '') + '</span></button>';
+      }
+    });
+    h += '</div>';
+    if (!editing && done === hs.length) h += '<p class="allgood">All done for today.</p>';
+  }
+  h += '</section>';
+  return h;
+}
+
+/* ---------- sheets ---------- */
+function pickerSheet(s) {
+  var single = s.slots.length === 1, h = '';
+  var title = single ? SLOTS.filter(function (x) { return x[0] === s.slots[0]; })[0][1] + ' · ' + DAYS[s.day] : DAYS[s.day];
+  h += '<h2 class="sheet-title" id="sheetTitle">' + title + '</h2>';
+  s.slots.forEach(function (slot) {
+    var cur = state.weekPlan[s.day][slot];
+    h += '<div class="sheet-sec">' + (single ? '' : '<h3 class="label">' + SLOTS.filter(function (x) { return x[0] === slot; })[0][1] + '</h3>') + '<div class="chips">';
+    state.dishes.forEach(function (d) {
+      h += '<button class="chip press" data-action="assign" data-day="' + s.day + '" data-slot="' + slot + '" data-dish="' + esc(d.id) + '" aria-pressed="' + (cur === d.id) + '">' + esc(d.name) + '</button>';
+    });
+    if (single && !ui.newDish) h += '<button class="chip ghost press" data-action="new-dish">+ New dish</button>';
+    h += '</div>';
+    if (single && cur) h += '<div style="margin-top:8px"><button class="link quiet" data-action="assign" data-day="' + s.day + '" data-slot="' + slot + '" data-dish="">Clear slot</button></div>';
+    h += '</div>';
+  });
+  if (!single && !ui.newDish) h += '<button class="chip ghost press" data-action="new-dish">+ New dish</button>';
+  if (ui.newDish) {
+    h += '<form class="add-form" data-form="dish"' + (single ? ' data-day="' + s.day + '" data-slot="' + s.slots[0] + '"' : '') + '>' +
+      '<input type="text" name="name" data-key="dish-input" placeholder="Dish name" maxlength="80" enterkeyhint="done" autocomplete="off" aria-label="New dish name">' +
+      '<button class="btn primary press" type="submit">Add</button></form>';
+  }
+  if (!state.dishes.length && !ui.newDish) h += '<p class="note">No dishes yet — add your first one.</p>';
+  return h;
+}
+function dishesSheet() {
+  var h = '<h2 class="sheet-title" id="sheetTitle">Dishes</h2>' +
+    '<form class="add-form" data-form="dish" style="margin-bottom:16px"><input type="text" name="name" data-key="dish-input" placeholder="New dish" maxlength="80" enterkeyhint="done" autocomplete="off" aria-label="New dish name">' +
+    '<button class="btn primary press" type="submit">Add</button></form>';
+  if (!state.dishes.length) return h + '<p class="note">Add a few dishes you like — then plan the week in taps.</p>';
+  h += '<ul class="card list">';
+  state.dishes.forEach(function (d) {
+    h += '<li><div class="row" style="padding-right:4px"><span class="grow ellip">' + esc(d.name) + '</span>' +
+      '<button class="icon-btn" data-action="del-dish" data-id="' + esc(d.id) + '" aria-label="Delete ' + esc(d.name) + '">' + icon('x', 20) + '</button></div></li>';
+  });
+  return h + '</ul>';
+}
+function energySheet(s) {
+  var k = s.date, e = (state.energy[k] || []).filter(function (x) { return x.t === s.t; })[0];
+  if (!e) return '<h2 class="sheet-title" id="sheetTitle">Entry removed</h2>';
+  var h = '<h2 class="sheet-title" id="sheetTitle">Energy at ' + hm(e.t) + '</h2><div class="scale" role="group" aria-label="Change energy">';
+  for (var v = 1; v <= 5; v++) {
+    var on = e.v === v;
+    h += '<button class="sq big press" data-action="energy-set" data-v="' + v + '" aria-pressed="' + on + '"' + (on ? ' style="background:' + SCALE[v] + '"' : '') + '>' + v + (on ? '' : '<span class="dot" style="background:' + SCALE[v] + '"></span>') + '</button>';
+  }
+  return h + '</div><div style="margin-top:20px"><button class="btn block press" data-action="energy-del">' + icon('x', 20) + 'Delete entry</button></div>';
+}
+function settingsSheet() {
+  return '<h2 class="sheet-title" id="sheetTitle">Settings</h2><div class="stack">' +
+    '<button class="btn block press" data-action="export">' + icon('dl', 20) + 'Export JSON</button>' +
+    '<button class="btn block press" data-action="import">' + icon('ul', 20) + 'Import JSON</button>' +
+    '<button class="btn block press" data-action="reset" style="margin-top:16px">' + (ui.resetArmed ? 'Tap again to erase everything' : 'Reset all') + '</button></div>' +
+    '<p class="note">Everything stays on this device. Export now and then as a backup.</p>';
+}
+
+/* ---------- render ---------- */
+var view = document.getElementById('view'), sheetEl = document.getElementById('sheet'), scrim = document.getElementById('scrim');
+function keyOf(el) {
+  if (!el || !el.dataset) return null;
+  if (el.dataset.key) return el.dataset.key;
+  if (!el.dataset.action) return null;
+  var d = el.dataset;
+  return d.action + '|' + (d.id || '') + '|' + (d.slot || '') + '|' + (d.v || '') + '|' + (d.day || '') + '|' + (d.date || '') + '|' + (d.t || '') + '|' + (d.dish || '');
+}
+function findKey(root, k) {
+  var els = root.querySelectorAll('[data-key],[data-action]');
+  for (var i = 0; i < els.length; i++) if (keyOf(els[i]) === k) return els[i];
+  return null;
+}
+function render() {
+  var t = todayKey();
+  if (ui.sel > t) ui.sel = t;
+  var active = document.activeElement, ak = keyOf(active), inSheet = sheetEl.contains(active);
+  document.getElementById('title').textContent = ui.sel === t ? 'Today, ' + fmtDay(t).split(', ')[1] : fmtDay(ui.sel);
+  document.getElementById('nextDay').disabled = ui.sel >= t;
+  document.getElementById('todayBtn').hidden = ui.sel === t;
+  var tab = state.ui.tab;
+  document.getElementById('tabs').innerHTML = TABS.map(function (x, i) {
+    return '<button class="tab" data-tab="' + x[0] + '"' + (x[0] === tab ? ' aria-current="page"' : '') + ' aria-keyshortcuts="' + (i + 1) + '">' + icon(x[0]) + '<span>' + x[1] + '</span></button>';
+  }).join('');
+  view.innerHTML = tab === 'sleep' ? sleepView() : tab === 'energy' ? energyView() : tab === 'habits' ? habitsView() : foodView();
+  view.setAttribute('data-tab', tab);
+  if (ui.sheet) {
+    var s = ui.sheet;
+    sheetEl.innerHTML = '<div class="handle" data-action="close-sheet" aria-hidden="true"><span></span></div>' +
+      (s.type === 'pick' ? pickerSheet(s) : s.type === 'dishes' ? dishesSheet() : s.type === 'energy' ? energySheet(s) : settingsSheet());
+  }
+  if (ak) { var el = findKey(inSheet ? sheetEl : view, ak); if (el && !el.disabled) try { el.focus({ preventScroll: true }); } catch (e) { el.focus(); } }
+}
+
+function openSheet(s) {
+  ui.opener = document.activeElement;
+  ui.sheet = s; ui.newDish = !!s.newDish; ui.resetArmed = false;
+  render();
+  sheetEl.classList.remove('closing');
+  sheetEl.removeAttribute('inert');
+  document.getElementById('app').setAttribute('inert', '');
+  void sheetEl.offsetWidth;
+  sheetEl.classList.add('open'); scrim.classList.add('open'); document.body.classList.add('sheet-open');
+  sheetEl.scrollTop = 0;
+  setTimeout(function () {
+    var f = (ui.newDish && sheetEl.querySelector('input')) || sheetEl.querySelector('button:not([disabled])');
+    if (f) try { f.focus({ preventScroll: true }); } catch (e) { f.focus(); }
+  }, 60);
+}
+function closeSheet() {
+  if (!ui.sheet) return;
+  ui.sheet = null; ui.newDish = false; ui.resetArmed = false;
+  sheetEl.classList.remove('open'); sheetEl.classList.add('closing'); scrim.classList.remove('open'); document.body.classList.remove('sheet-open');
+  sheetEl.setAttribute('inert', '');
+  document.getElementById('app').removeAttribute('inert');
+  setTimeout(function () { if (!ui.sheet) { sheetEl.classList.remove('closing'); sheetEl.innerHTML = ''; } }, 240);
+  var o = ui.opener; ui.opener = null;
+  if (o && document.contains(o)) try { o.focus({ preventScroll: true }); } catch (e) {}
+}
+
+/* ---------- navigation ---------- */
+function setDay(k) {
+  var t = todayKey(); if (k > t) k = t;
+  if (k === ui.sel) return;
+  ui.sel = k; ui.editHabits = false;
+  render();
+  document.getElementById('main').scrollTop = 0;
+}
+function setTab(t) {
+  if (state.ui.tab === t) return;
+  state.ui.tab = t; ui.editHabits = false; save(); render();
+  document.getElementById('main').scrollTop = 0;
+}
+document.getElementById('prevDay').innerHTML = icon('left');
+document.getElementById('nextDay').innerHTML = icon('right');
+document.getElementById('gear').innerHTML = icon('gear', 22);
+document.getElementById('prevDay').addEventListener('click', function () { setDay(addDays(ui.sel, -1)); });
+document.getElementById('nextDay').addEventListener('click', function () { setDay(addDays(ui.sel, 1)); });
+document.getElementById('todayBtn').addEventListener('click', function () { setDay(todayKey()); });
+document.getElementById('gear').addEventListener('click', function () { openSheet({ type: 'settings' }); });
+document.getElementById('tabs').addEventListener('click', function (e) { var b = e.target.closest('[data-tab]'); if (b) setTab(b.dataset.tab); });
+scrim.addEventListener('click', closeSheet);
+
+document.addEventListener('keydown', function (e) {
+  if (ui.sheet) { if (e.key === 'Escape') { e.preventDefault(); closeSheet(); } return; }
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  var t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); setDay(addDays(ui.sel, -1)); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); setDay(addDays(ui.sel, 1)); }
+  else if (/^[1-4]$/.test(e.key)) { e.preventDefault(); setTab(TABS[+e.key - 1][0]); }
+});
+
+// Swipe left/right on content = next/previous day
+(function () {
+  var sx = 0, sy = 0, st = 0, track = false, main = document.getElementById('main');
+  main.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) { track = false; return; }
+    var tg = e.target; track = !(tg && tg.closest && tg.closest('input'));
+    sx = e.touches[0].clientX; sy = e.touches[0].clientY; st = Date.now();
+  }, { passive: true });
+  main.addEventListener('touchend', function (e) {
+    if (!track) return; track = false;
+    var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Date.now() - st < 700 && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) setDay(addDays(ui.sel, dx < 0 ? 1 : -1));
+  }, { passive: true });
+  // swipe down on the sheet handle closes it
+  var hy = null;
+  sheetEl.addEventListener('touchstart', function (e) { hy = e.target.closest('.handle') ? e.touches[0].clientY : null; }, { passive: true });
+  sheetEl.addEventListener('touchend', function (e) { if (hy != null && e.changedTouches[0].clientY - hy > 50) closeSheet(); hy = null; }, { passive: true });
+})();
+
+/* ---------- actions ---------- */
+function slotName(slot) { return SLOTS.filter(function (x) { return x[0] === slot; })[0][1]; }
+function addDish(name) {
+  name = (name || '').trim().slice(0, 80);
+  if (!name) return null;
+  var ex = state.dishes.filter(function (d) { return d.name.toLowerCase() === name.toLowerCase(); })[0];
+  return ex || { id: uid(), name: name, isNew: true };
+}
+
+var actions = {
+  'close-sheet': closeSheet,
+  'manage-dishes': function (b) { openSheet({ type: 'dishes', newDish: !!b.dataset.new }); },
+  pick: function (b) { openSheet({ type: 'pick', day: +b.dataset.day, slots: [b.dataset.slot] }); },
+  'pick-day': function (b) { openSheet({ type: 'pick', day: +b.dataset.day, slots: SLOTS.map(function (x) { return x[0]; }) }); },
+  'new-dish': function () {
+    ui.newDish = true; render();
+    var i = sheetEl.querySelector('[data-key="dish-input"]'); if (i) i.focus();
+  },
+  assign: function (b) {
+    var day = +b.dataset.day, slot = b.dataset.slot, id = b.dataset.dish || null, single = ui.sheet && ui.sheet.slots.length === 1;
+    if (!single && id && state.weekPlan[day][slot] === id) id = null; // tap selected chip again = clear
+    var d = id && dish(id);
+    commit(function (s) { s.weekPlan[day][slot] = id; },
+      d ? DSHORT[day] + ' ' + slotName(slot).toLowerCase() + ': ' + d.name : DSHORT[day] + ' ' + slotName(slot).toLowerCase() + ' cleared', { buzz: true });
+    if (single) closeSheet();
+  },
+  eat: function (b) {
+    var slot = b.dataset.slot, k = ui.sel, now = !((state.eaten[k] || {})[slot]);
+    var d = dish(state.weekPlan[wdIdx(k)][slot]);
+    commit(function (s) {
+      var e = s.eaten[k] || (s.eaten[k] = {});
+      if (now) e[slot] = true; else delete e[slot];
+      if (!Object.keys(e).length) delete s.eaten[k];
+    }, (d ? d.name : slotName(slot)) + (now ? ' · eaten' : ' · not eaten'), { buzz: true });
+  },
+  'clear-week': function () {
+    var any = state.weekPlan.some(function (p) { return p.breakfast || p.lunch || p.dinner; });
+    if (!any) { showToast('The week plan is already empty', null); return; }
+    commit(function (s) { s.weekPlan = defaultState().weekPlan; }, 'Week plan cleared');
+  },
+  'del-dish': function (b) {
+    var id = b.dataset.id, d = dish(id); if (!d) return;
+    commit(function (s) {
+      s.dishes = s.dishes.filter(function (x) { return x.id !== id; });
+      s.weekPlan.forEach(function (p) { SLOTS.forEach(function (sl) { if (p[sl[0]] === id) p[sl[0]] = null; }); });
+    }, 'Deleted “' + d.name + '”');
+  },
+  'same-yesterday': function () {
+    var y = state.sleep[addDays(ui.sel, -1)], k = ui.sel; if (!y) return;
+    commit(function (s) {
+      var e = s.sleep[k] || (s.sleep[k] = {});
+      if (y.bed) e.bed = y.bed; else delete e.bed;
+      if (y.wake) e.wake = y.wake; else delete e.wake;
+    }, 'Sleep ' + (y.bed || '--:--') + ' → ' + (y.wake || '--:--') + ' saved', { buzz: true });
+  },
+  quality: function (b) {
+    var v = +b.dataset.v, k = ui.sel, cur = (state.sleep[k] || {}).q, nv = cur === v ? null : v;
+    commit(function (s) {
+      var e = s.sleep[k] || (s.sleep[k] = {});
+      if (nv) e.q = nv; else delete e.q;
+      if (!Object.keys(e).length) delete s.sleep[k];
+    }, nv ? 'Sleep quality ' + nv : 'Sleep quality cleared', { buzz: true });
+  },
+  'del-sleep': function (b) {
+    var k = b.dataset.date;
+    commit(function (s) { delete s.sleep[k]; }, 'Sleep for ' + fmtDay(k) + ' deleted');
+  },
+  energy: function (b) {
+    var v = +b.dataset.v, k = ui.sel, now = new Date(), d = parseKey(k);
+    d.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+    var t = d.getTime();
+    commit(function (s) {
+      var a = s.energy[k] || (s.energy[k] = []);
+      while (a.some(function (x) { return x.t === t; })) t++;
+      a.push({ t: t, v: v }); a.sort(function (x, y) { return x.t - y.t; });
+    }, 'Energy ' + v + ' · ' + hm(t), { buzz: true });
+  },
+  'edit-energy': function (b) { openSheet({ type: 'energy', date: ui.sel, t: +b.dataset.t }); },
+  'energy-set': function (b) {
+    var s0 = ui.sheet, v = +b.dataset.v;
+    commit(function (s) { (s.energy[s0.date] || []).forEach(function (x) { if (x.t === s0.t) x.v = v; }); }, 'Energy at ' + hm(s0.t) + ' → ' + v, { buzz: true });
+    closeSheet();
+  },
+  'energy-del': function () {
+    var s0 = ui.sheet;
+    commit(function (s) {
+      s.energy[s0.date] = (s.energy[s0.date] || []).filter(function (x) { return x.t !== s0.t; });
+      if (!s.energy[s0.date].length) delete s.energy[s0.date];
+    }, 'Energy entry at ' + hm(s0.t) + ' deleted');
+    closeSheet();
+  },
+  'toggle-habit': function (b) {
+    var id = b.dataset.id, k = ui.sel, on = !habitDone(id, k);
+    var h = state.habits.filter(function (x) { return x.id === id; })[0];
+    commit(function (s) {
+      var a = s.habitLog[k] || (s.habitLog[k] = []);
+      if (on) a.push(id); else s.habitLog[k] = a.filter(function (x) { return x !== id; });
+      if (!s.habitLog[k].length) delete s.habitLog[k];
+    }, (h ? h.name : 'Habit') + (on ? ' · done' : ' · unchecked'), { buzz: true });
+  },
+  'edit-habits': function () {
+    ui.editHabits = !ui.editHabits; render();
+    if (ui.editHabits) { var i = view.querySelector('[data-key="habit-input"]'); if (i) i.focus(); }
+  },
+  'habit-up': function (b) { moveHabit(b.dataset.id, -1); },
+  'habit-down': function (b) { moveHabit(b.dataset.id, 1); },
+  'habit-del': function (b) {
+    var id = b.dataset.id, h = state.habits.filter(function (x) { return x.id === id; })[0]; if (!h) return;
+    commit(function (s) { s.habits = s.habits.filter(function (x) { return x.id !== id; }); }, 'Removed “' + h.name + '”');
+    if (!state.habits.length) { var i = view.querySelector('[data-key="habit-input"]'); if (i) i.focus(); }
+  },
+  export: doExport,
+  import: function () { var f = document.getElementById('importFile'); f.value = ''; f.click(); },
+  reset: function () {
+    if (!ui.resetArmed) {
+      ui.resetArmed = true; render();
+      setTimeout(function () { if (ui.resetArmed) { ui.resetArmed = false; if (ui.sheet) render(); } }, 4000);
+      return;
+    }
+    ui.resetArmed = false;
+    commit(function (s) { var tab = s.ui.tab, d = defaultState(); Object.keys(s).forEach(function (k) { delete s[k]; }); Object.assign(s, d); s.ui.tab = tab; }, 'All data erased');
+    closeSheet();
+  }
+};
+function moveHabit(id, dir) {
+  var i = state.habits.findIndex(function (x) { return x.id === id; }), j = i + dir;
+  if (i < 0 || j < 0 || j >= state.habits.length) return;
+  commit(function (s) { var t = s.habits[i]; s.habits[i] = s.habits[j]; s.habits[j] = t; }, null);
+}
+
+function onClick(e) {
+  var b = e.target.closest('[data-action]');
+  if (!b || b.disabled) return;
+  var f = actions[b.dataset.action];
+  if (f) { e.preventDefault(); f(b); }
+}
+view.addEventListener('click', onClick);
+sheetEl.addEventListener('click', onClick);
+
+function onSubmit(e) {
+  var form = e.target.closest('form[data-form]'); if (!form) return;
+  e.preventDefault();
+  var input = form.querySelector('input[name="name"]'), name = input.value.trim().slice(0, 80);
+  if (!name) { input.focus(); return; }
+  if (form.dataset.form === 'habit') {
+    commit(function (s) { s.habits.push({ id: uid(), name: name }); }, 'Added “' + name + '”');
+    var i = view.querySelector('[data-key="habit-input"]'); if (i) i.focus();
+  } else {
+    var d = addDish(name), day = form.dataset.day, slot = form.dataset.slot;
+    commit(function (s) {
+      if (d.isNew) s.dishes.push({ id: d.id, name: d.name });
+      if (slot) s.weekPlan[+day][slot] = d.id;
+    }, slot ? DSHORT[+day] + ' ' + slotName(slot).toLowerCase() + ': ' + d.name : (d.isNew ? 'Added “' + d.name + '”' : '“' + d.name + '” is already in the list'));
+    if (slot) closeSheet();
+    else { var j = sheetEl.querySelector('[data-key="dish-input"]'); if (j) { j.value = ''; j.focus(); } }
+  }
+}
+view.addEventListener('submit', onSubmit);
+sheetEl.addEventListener('submit', onSubmit);
+
+/* Sleep time inputs: patch DOM in place while the native picker is open; full render on blur. */
+function onTimeChange(e) {
+  var inp = e.target; if (!inp.matches || !inp.matches('input[type="time"][data-field]')) return;
+  var f = inp.dataset.field, v = inp.value, k = ui.sel;
+  if (v && !okTime(v)) return;
+  commit(function (s) {
+    var en = s.sleep[k] || (s.sleep[k] = {});
+    if (v) en[f] = v; else delete en[f];
+    if (!Object.keys(en).length) delete s.sleep[k];
+  }, (f === 'bed' ? 'Bed ' : 'Wake ') + (v || 'cleared'), { noRender: true, coalesce: 'time-' + f + k, buzz: true });
+  var e2 = state.sleep[k] || {}, show = view.querySelector('[data-show="' + f + '"]');
+  if (show) { show.textContent = v || '--:--'; show.classList.toggle('empty-val', !v); }
+  var g = view.querySelector('[data-ghost="' + f + '"]'); if (g && v) g.innerHTML = '&nbsp;';
+  var d = durMin(e2.bed, e2.wake), du = document.getElementById('dur'); if (du) du.innerHTML = d != null ? fmtDur(d) : '&nbsp;';
+  var pr = view.querySelector('[data-prompt]'); if (pr) pr.hidden = Object.keys(e2).length > 0;
+  var n = document.getElementById('nights'); if (n) n.innerHTML = nightsList();
+}
+view.addEventListener('change', onTimeChange);
+view.addEventListener('focusout', function (e) {
+  if (e.target.matches && e.target.matches('input[type="time"]')) setTimeout(function () {
+    var a = document.activeElement; if (!(a && a.matches && a.matches('input[type="time"]'))) render();
+  }, 0);
+});
+view.addEventListener('click', function (e) {
+  var inp = e.target.closest && e.target.closest('input[type="time"]');
+  if (inp && typeof inp.showPicker === 'function') { try { inp.showPicker(); } catch (err) {} }
+});
+
+/* ---------- export / import ---------- */
+function doExport() {
+  var data = clone(state); data.app = 'dailyTracker'; data.exportedAt = new Date().toISOString();
+  var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = 'daily-tracker-' + todayKey() + '.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+  showToast('Exported ' + a.download, null);
+}
+document.getElementById('importFile').addEventListener('change', function (e) {
+  var file = e.target.files && e.target.files[0]; if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { showToast('Import failed: file is too large', null); return; }
+  var reader = new FileReader();
+  reader.onload = function () {
+    var next;
+    try { next = normalize(JSON.parse(String(reader.result))); }
+    catch (err) { showToast('Import failed: ' + (err instanceof SyntaxError ? 'not valid JSON' : err.message), null); return; }
+    // No confirm dialog: replace, keep a snapshot, offer Undo (per DESIGN.md).
+    commit(function (s) { var tab = s.ui.tab; Object.keys(s).forEach(function (k) { delete s[k]; }); Object.assign(s, next); s.ui.tab = tab; },
+      'Imported ' + next.dishes.length + ' dishes, ' + next.habits.length + ' habits');
+    closeSheet();
+  };
+  reader.onerror = function () { showToast('Import failed: could not read the file', null); };
+  reader.readAsText(file);
+});
+
+/* ---------- day rollover, storage, service worker ---------- */
+function checkRollover() {
+  var t = todayKey();
+  if (t !== ui.lastToday) { if (ui.sel === ui.lastToday) ui.sel = t; ui.lastToday = t; if (!document.querySelector('input:focus')) render(); }
+}
+document.addEventListener('visibilitychange', function () { if (!document.hidden) checkRollover(); });
+window.addEventListener('focus', checkRollover);
+setInterval(checkRollover, 60000);
+window.addEventListener('storage', function (e) { if (e.key === KEY) { state = load(); render(); } });
+
+try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('./sw.js').catch(function () {}); });
+}
+
+save();
+render();
+})();
+</script>
+</body>
+</html>
